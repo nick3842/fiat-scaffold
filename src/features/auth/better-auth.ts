@@ -8,7 +8,9 @@ export const betterAuthFeature: FeatureModule = {
   affects: ["frontend", "backend"],
 
   dependencies: {
-    frontend: {},
+    frontend: {
+      "better-auth": "^1.2.0",
+    },
     backend: {
       "better-auth": "^1.2.0",
     },
