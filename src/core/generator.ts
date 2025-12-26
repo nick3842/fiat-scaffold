@@ -7,7 +7,7 @@ import { featureRegistry } from "../features/index.ts";
 import type { ScaffoldConfig } from "./config.ts";
 
 export interface GenerationProgress {
-  phase: "setup" | "frontend" | "backend" | "features" | "finalize";
+  phase: "setup" | "frontend" | "backend" | "features" | "install" | "finalize";
   message: string;
   progress: number; // 0-100
 }
@@ -55,15 +55,30 @@ export class ProjectGenerator {
     onProgress?.({
       phase: "features",
       message: "Applying features...",
-      progress: 70,
+      progress: 60,
     });
     await this.applyFeatures(config, outputPath);
 
-    // Phase 5: Finalize
+    // Phase 5: Install dependencies
+    onProgress?.({
+      phase: "install",
+      message: "Installing frontend dependencies...",
+      progress: 70,
+    });
+    await this.installDependencies(outputPath, "frontend");
+
+    onProgress?.({
+      phase: "install",
+      message: "Installing backend dependencies...",
+      progress: 85,
+    });
+    await this.installDependencies(outputPath, "backend");
+
+    // Phase 6: Finalize
     onProgress?.({
       phase: "finalize",
       message: "Finalizing project...",
-      progress: 90,
+      progress: 95,
     });
     await this.finalize(config, outputPath);
 
@@ -236,6 +251,23 @@ export class ProjectGenerator {
 
     await mkdir(dirname(join(dir, "package.json")), { recursive: true });
     await writeFile(join(dir, "package.json"), JSON.stringify(pkg, null, 2));
+  }
+
+  private async installDependencies(
+    outputPath: string,
+    target: "frontend" | "backend"
+  ): Promise<void> {
+    const cwd = join(outputPath, target);
+    const proc = Bun.spawn(["bun", "install"], {
+      cwd,
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    await proc.exited;
+    
+    if (proc.exitCode !== 0) {
+      throw new Error(`Failed to install ${target} dependencies`);
+    }
   }
 
   private async finalize(

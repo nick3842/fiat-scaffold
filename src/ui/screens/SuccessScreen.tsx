@@ -35,15 +35,11 @@ export function SuccessScreen({ onExit }: SuccessScreenProps) {
         <text fg="#808080"># Navigate to your project</text>
         <text fg="#ffff00">cd {config.projectName}</text>
         <text> </text>
-        <text fg="#808080"># Install frontend dependencies</text>
-        <text fg="#ffff00">cd frontend && bun install</text>
+        <text fg="#808080"># Start frontend dev server (http://localhost:5173)</text>
+        <text fg="#ffff00">cd frontend && bun dev</text>
         <text> </text>
-        <text fg="#808080"># Install backend dependencies</text>
-        <text fg="#ffff00">cd ../backend && bun install</text>
-        <text> </text>
-        <text fg="#808080"># Start development servers</text>
-        <text fg="#ffff00">cd ../frontend && bun dev</text>
-        <text fg="#ffff00">cd ../backend && bun dev</text>
+        <text fg="#808080"># Start backend dev server (http://localhost:3001)</text>
+        <text fg="#ffff00">cd backend && bun dev</text>
       </box>
 
       <box marginTop={2}>

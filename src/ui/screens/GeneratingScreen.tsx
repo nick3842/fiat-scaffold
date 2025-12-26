@@ -27,6 +27,7 @@ export function GeneratingScreen({ onComplete, onError }: GeneratingScreenProps)
     { label: "Generating frontend", done: false },
     { label: "Generating backend", done: false },
     { label: "Applying features", done: false },
+    { label: "Installing dependencies", done: false },
     { label: "Finalizing project", done: false },
   ]);
 
@@ -42,7 +43,7 @@ export function GeneratingScreen({ onComplete, onError }: GeneratingScreenProps)
 
           setSteps((prev) => {
             const newSteps: Step[] = [...prev];
-            const phaseIndex = ["setup", "frontend", "backend", "features", "finalize"].indexOf(p.phase);
+            const phaseIndex = ["setup", "frontend", "backend", "features", "install", "finalize"].indexOf(p.phase);
             for (let i = 0; i < phaseIndex; i++) {
               const step = newSteps[i];
               if (step) {
