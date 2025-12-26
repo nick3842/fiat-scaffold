@@ -8,7 +8,10 @@ import { BackendScreen } from "./ui/screens/BackendScreen.tsx";
 import { FeaturesScreen } from "./ui/screens/FeaturesScreen.tsx";
 import { GeneratingScreen } from "./ui/screens/GeneratingScreen.tsx";
 import { SuccessScreen } from "./ui/screens/SuccessScreen.tsx";
+import { RunningHookScreen } from "./ui/screens/RunningHookScreen.tsx";
 import { ErrorScreen } from "./ui/screens/ErrorScreen.tsx";
+import type { CliOptions } from "./index.tsx";
+import type { HookContext } from "./hooks/types.ts";
 
 type Screen =
   | "welcome"
@@ -18,15 +21,24 @@ type Screen =
   | "features"
   | "generating"
   | "success"
+  | "runningHook"
   | "error";
 
-interface AppProps {
-  onExit: () => void;
+export interface DeferredHook {
+  hookId: string;
+  ctx: HookContext;
 }
 
-function AppContent({ onExit }: AppProps) {
+interface AppProps {
+  onExit: (exitCode?: number, deferredHook?: DeferredHook) => void;
+  cliOptions?: CliOptions;
+}
+
+function AppContent({ onExit, cliOptions }: AppProps) {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [error, setError] = useState<Error | null>(null);
+
+  const hasHook = !!(cliOptions?.hook || cliOptions?.postScript);
 
   // Global Ctrl+C handler
   useKeyboard((key) => {
@@ -38,6 +50,19 @@ function AppContent({ onExit }: AppProps) {
   const handleError = (err: Error) => {
     setError(err);
     setScreen("error");
+  };
+
+  const handleGenerationComplete = () => {
+    if (hasHook) {
+      setScreen("runningHook");
+    } else {
+      setScreen("success");
+    }
+  };
+
+  const handleRunAfterExit = (hookId: string, ctx: HookContext) => {
+    // Pass the deferred hook to onExit so it can run after TUI cleanup
+    onExit(0, { hookId, ctx });
   };
 
   return (
@@ -71,20 +96,28 @@ function AppContent({ onExit }: AppProps) {
       )}
       {screen === "generating" && (
         <GeneratingScreen
-          onComplete={() => setScreen("success")}
+          onComplete={handleGenerationComplete}
           onError={handleError}
         />
       )}
-      {screen === "success" && <SuccessScreen onExit={onExit} />}
+      {screen === "runningHook" && (
+        <RunningHookScreen
+          cliOptions={cliOptions!}
+          onComplete={() => setScreen("success")}
+          onError={handleError}
+          onRunAfterExit={handleRunAfterExit}
+        />
+      )}
+      {screen === "success" && <SuccessScreen onExit={onExit} hasHook={hasHook} />}
       {screen === "error" && error && <ErrorScreen error={error} onExit={onExit} />}
     </box>
   );
 }
 
-export function App({ onExit }: AppProps) {
+export function App({ onExit, cliOptions }: AppProps) {
   return (
     <WizardProvider>
-      <AppContent onExit={onExit} />
+      <AppContent onExit={onExit} cliOptions={cliOptions} />
     </WizardProvider>
   );
 }

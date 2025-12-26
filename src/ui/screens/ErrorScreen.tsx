@@ -1,14 +1,15 @@
 import { useKeyboard } from "@opentui/react";
+import type { DeferredHook } from "../../app.tsx";
 
 interface ErrorScreenProps {
   error: Error;
-  onExit: () => void;
+  onExit: (exitCode?: number, deferredHook?: DeferredHook) => void;
 }
 
 export function ErrorScreen({ error, onExit }: ErrorScreenProps) {
   useKeyboard((key) => {
     if (key.name === "return" || key.name === "escape" || key.sequence) {
-      onExit();
+      onExit(1);
     }
   });
 

@@ -2,10 +2,72 @@
 
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { App } from "./app.tsx";
+import { App, type DeferredHook } from "./app.tsx";
+import { hookRegistry } from "./hooks/index.ts";
+
+export interface CliOptions {
+  hook?: string;
+  postScript?: string;
+  help?: boolean;
+  listHooks?: boolean;
+}
+
+function parseArgs(): CliOptions {
+  const args = process.argv.slice(2);
+  const options: CliOptions = {};
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--hook" || arg === "-h") {
+      options.hook = args[++i];
+    } else if (arg === "--post-script" || arg === "-p") {
+      options.postScript = args[++i];
+    } else if (arg === "--help") {
+      options.help = true;
+    } else if (arg === "--list-hooks" || arg === "-l") {
+      options.listHooks = true;
+    }
+  }
+
+  return options;
+}
+
+function printHelp() {
+  console.log(`
+scaffold - Full-stack TypeScript project generator
+
+Usage: scaffold [options]
+
+Options:
+  --hook, -h <id>         Run a built-in hook after generation
+  --post-script, -p <script>  Run a custom bash script after generation
+  --list-hooks, -l        List available built-in hooks
+  --help                  Show this help message
+
+Environment variables available in hooks:
+  SCAFFOLD_PROJECT_NAME   Name of the generated project
+  SCAFFOLD_PROJECT_PATH   Absolute path to the project root
+  SCAFFOLD_FRONTEND_PATH  Absolute path to the frontend directory
+  SCAFFOLD_BACKEND_PATH   Absolute path to the backend directory
+
+Examples:
+  scaffold                        # Interactive wizard
+  scaffold --hook tmux-dev        # Generate and open in tmux session
+  scaffold -p "code ."            # Generate and open in VS Code
+`);
+}
+
+function listHooks() {
+  const hooks = hookRegistry.getAll();
+  console.log("\nAvailable hooks:\n");
+  for (const hook of hooks) {
+    console.log(`  ${hook.id}`);
+    console.log(`    ${hook.description}\n`);
+  }
+}
 
 // Use Bun's native file writing for synchronous terminal reset
-function resetTerminalSync() {
+function resetTerminalSync(keepStdinAlive = false) {
   const reset = [
     "\x1b[?1000l", // Disable X11 mouse reporting
     "\x1b[?1002l", // Disable cell motion mouse tracking  
@@ -18,12 +80,14 @@ function resetTerminalSync() {
     "\x1b[0m", // Reset all attributes
   ].join("");
 
-  // Restore stdin first
+  // Restore stdin to cooked mode
   if (process.stdin.isTTY) {
     try {
       process.stdin.setRawMode(false);
-      process.stdin.pause();
-      process.stdin.unref();
+      if (!keepStdinAlive) {
+        process.stdin.pause();
+        process.stdin.unref();
+      }
     } catch {
       // Ignore
     }
@@ -34,6 +98,18 @@ function resetTerminalSync() {
 }
 
 async function main() {
+  const options = parseArgs();
+
+  if (options.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  if (options.listHooks) {
+    listHooks();
+    process.exit(0);
+  }
+
   const renderer = await createCliRenderer({
     useAlternateScreen: true,
   });
@@ -42,12 +118,13 @@ async function main() {
 
   let isCleaningUp = false;
 
-  const cleanup = () => {
+  const cleanup = async (exitCode = 0, deferredHook?: DeferredHook) => {
     if (isCleaningUp) return;
     isCleaningUp = true;
 
     // Reset terminal FIRST before unmounting
-    resetTerminalSync();
+    // Keep stdin alive if we have a deferred hook that needs terminal access
+    resetTerminalSync(!!deferredHook);
 
     try {
       root.unmount();
@@ -56,14 +133,25 @@ async function main() {
       // Ignore errors during cleanup
     }
 
-    process.exit(0);
+    // If there's a deferred hook (like tmux), run it after TUI cleanup
+    if (deferredHook) {
+      const result = await hookRegistry.execute(deferredHook.hookId, deferredHook.ctx);
+      if (!result.success) {
+        console.error(`Hook failed: ${result.error}`);
+        process.exit(1);
+      }
+      // Exit after hook completes (for switch-client case) or if exec failed
+      process.exit(0);
+    }
+
+    process.exit(exitCode);
   };
 
   // Handle process signals
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  process.on("SIGINT", () => cleanup(0));
+  process.on("SIGTERM", () => cleanup(0));
 
-  root.render(<App onExit={cleanup} />);
+  root.render(<App onExit={cleanup} cliOptions={options} />);
 }
 
 main().catch((err) => {

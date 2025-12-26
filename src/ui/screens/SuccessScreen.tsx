@@ -1,16 +1,18 @@
 import { useKeyboard } from "@opentui/react";
 import { useWizard } from "../hooks/useWizard.tsx";
+import type { DeferredHook } from "../../app.tsx";
 
 interface SuccessScreenProps {
-  onExit: () => void;
+  onExit: (exitCode?: number, deferredHook?: DeferredHook) => void;
+  hasHook?: boolean;
 }
 
-export function SuccessScreen({ onExit }: SuccessScreenProps) {
+export function SuccessScreen({ onExit, hasHook }: SuccessScreenProps) {
   const { config } = useWizard();
 
   useKeyboard((key) => {
     if (key.name === "return" || key.name === "escape" || key.sequence) {
-      onExit();
+      onExit(0);
     }
   });
 
