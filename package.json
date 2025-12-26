@@ -5,12 +5,12 @@
   "type": "module",
   "private": true,
   "bin": {
-    "scaffold": "./src/index.tsx"
+    "fiat": "./src/index.tsx"
   },
   "scripts": {
     "dev": "bun run src/index.tsx",
     "build": "bun build src/index.tsx --outdir dist --target bun",
-    "compile": "bun build src/index.tsx --compile --outfile scaffold"
+    "compile": "bun build src/index.tsx --compile --outfile fiat"
   },
   "devDependencies": {
     "@types/bun": "latest",
