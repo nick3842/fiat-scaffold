@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import { join, dirname } from "path";
 import { TemplateEngine } from "./template-engine.ts";
+import { embeddedTemplates } from "./embedded-templates.ts";
 import { frameworkRegistry } from "../frameworks/index.ts";
 import { featureRegistry } from "../features/index.ts";
 import type { ScaffoldConfig } from "./config.ts";
@@ -16,8 +17,8 @@ export type ProgressCallback = (progress: GenerationProgress) => void;
 export class ProjectGenerator {
   private templateEngine: TemplateEngine;
 
-  constructor(templatesRoot: string) {
-    this.templateEngine = new TemplateEngine(templatesRoot);
+  constructor() {
+    this.templateEngine = new TemplateEngine();
   }
 
   async generate(

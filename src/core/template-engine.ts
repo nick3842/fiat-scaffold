@@ -1,5 +1,6 @@
-import { readdir, mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { join, dirname } from "path";
+import { embeddedTemplates, type EmbeddedFile } from "./embedded-templates.ts";
 
 export interface TemplateContext {
   projectName: string;
@@ -7,12 +8,6 @@ export interface TemplateContext {
 }
 
 export class TemplateEngine {
-  private templatesRoot: string;
-
-  constructor(templatesRoot: string) {
-    this.templatesRoot = templatesRoot;
-  }
-
   /**
    * Process a template string with context variables
    * Supports: {{variable}}, {{#if condition}}...{{/if}}, {{#unless condition}}...{{/unless}}
@@ -46,42 +41,32 @@ export class TemplateEngine {
   }
 
   /**
-   * Process all templates in a directory and output to destination
+   * Process all embedded templates for a framework and output to destination
    */
   async processDirectory(
     templateDir: string,
     outputDir: string,
     context: TemplateContext
   ): Promise<void> {
-    const sourcePath = join(this.templatesRoot, templateDir);
+    const files: EmbeddedFile[] | undefined = embeddedTemplates[templateDir];
+    
+    if (!files) {
+      throw new Error(`No embedded templates found for: ${templateDir}`);
+    }
 
-    const processDir = async (currentPath: string, relativePath: string = "") => {
-      const entries = await readdir(currentPath, { withFileTypes: true });
+    for (const file of files) {
+      // Process filename (may contain template variables)
+      let processedPath = this.process(file.path, context);
+      // Remove .template extension if present
+      processedPath = processedPath.replace(/\.template$/, "");
 
-      for (const entry of entries) {
-        const entryRelativePath = relativePath ? join(relativePath, entry.name) : entry.name;
+      const destFile = join(outputDir, processedPath);
 
-        if (entry.isDirectory()) {
-          await processDir(join(currentPath, entry.name), entryRelativePath);
-        } else if (entry.isFile()) {
-          // Process filename (may contain template variables)
-          let processedPath = this.process(entryRelativePath, context);
-          // Remove .template extension if present
-          processedPath = processedPath.replace(/\.template$/, "");
+      // Process content and write
+      const processedContent = this.process(file.content, context);
 
-          const sourceFile = join(currentPath, entry.name);
-          const destFile = join(outputDir, processedPath);
-
-          // Read, process, and write
-          const content = await Bun.file(sourceFile).text();
-          const processedContent = this.process(content, context);
-
-          await mkdir(dirname(destFile), { recursive: true });
-          await writeFile(destFile, processedContent);
-        }
-      }
-    };
-
-    await processDir(sourcePath);
+      await mkdir(dirname(destFile), { recursive: true });
+      await writeFile(destFile, processedContent);
+    }
   }
 }

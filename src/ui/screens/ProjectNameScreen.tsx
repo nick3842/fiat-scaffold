@@ -11,20 +11,21 @@ interface ProjectNameScreenProps {
 
 export function ProjectNameScreen({ onNext, onBack }: ProjectNameScreenProps) {
   const { config, setProjectName } = useWizard();
-  const [name, setName] = useState(config.projectName || "my-app");
+  const [name, setName] = useState(config.projectName || "");
   const [error, setError] = useState<string | null>(null);
+
+  const placeholder = "my-app";
+  const showPlaceholder = name === "";
+  const displayText = showPlaceholder ? placeholder : name;
 
   useKeyboard((key) => {
     if (key.name === "return") {
-      if (!name.trim()) {
-        setError("Project name cannot be empty");
-        return;
-      }
-      if (!/^[a-z0-9-]+$/.test(name)) {
+      const finalName = name || placeholder;
+      if (!/^[a-z0-9-]+$/.test(finalName)) {
         setError("Project name can only contain lowercase letters, numbers, and hyphens");
         return;
       }
-      setProjectName(name);
+      setProjectName(finalName);
       onNext();
     } else if (key.name === "escape") {
       onBack();
@@ -46,9 +47,9 @@ export function ProjectNameScreen({ onNext, onBack }: ProjectNameScreenProps) {
         <text><b>What is your project name?</b></text>
       </box>
 
-      <box marginTop={1} marginBottom={1}>
+      <box flexDirection="row" marginTop={1} marginBottom={1}>
         <text fg="#00ffff">❯ </text>
-        <text>{name}</text>
+        <text fg={showPlaceholder ? "#808080" : undefined}>{displayText}</text>
         <text fg="#00ffff">█</text>
       </box>
 

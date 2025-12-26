@@ -4,7 +4,6 @@ import { StepIndicator } from "../components/StepIndicator.tsx";
 import { ProgressBar } from "../components/ProgressBar.tsx";
 import { useWizard } from "../hooks/useWizard.tsx";
 import { ProjectGenerator, type GenerationProgress } from "../../core/generator.ts";
-import { join, dirname } from "path";
 
 interface GeneratingScreenProps {
   onComplete: () => void;
@@ -36,10 +35,7 @@ export function GeneratingScreen({ onComplete, onError }: GeneratingScreenProps)
       try {
         const config = getFullConfig();
 
-        // Get the templates root path
-        const templatesRoot = join(dirname(import.meta.url.replace("file://", "")), "..", "..", "templates");
-
-        const generator = new ProjectGenerator(templatesRoot);
+        const generator = new ProjectGenerator();
 
         await generator.generate(config, (p) => {
           setProgress(p);

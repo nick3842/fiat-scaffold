@@ -5,20 +5,15 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ current, total, label }: StepIndicatorProps) {
-  const steps = Array.from({ length: total }, (_, i) => i + 1);
+  const dots = Array.from({ length: total }, (_, i) => {
+    const step = i + 1;
+    return step <= current ? "●" : "○";
+  }).join(" ");
 
   return (
-    <box marginBottom={1}>
-      <text fg="#808080">
-        Step {current}/{total}
-        {label && ` - ${label}`}{" "}
-      </text>
-      {steps.map((step) => (
-        <text key={step} fg={step === current ? "#00ffff" : step < current ? "#00ff00" : "#808080"}>
-          {step <= current ? "●" : "○"}
-          {step < total ? " " : ""}
-        </text>
-      ))}
+    <box flexDirection="row" marginBottom={1}>
+      <text fg="#808080">Step {current}/{total}{label ? ` - ${label}` : ""} </text>
+      <text fg="#00ffff">{dots}</text>
     </box>
   );
 }
