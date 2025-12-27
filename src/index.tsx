@@ -7,9 +7,13 @@ import { hookRegistry } from "./hooks/index.ts";
 
 export interface CliOptions {
   hook?: string;
-  postScript?: string;
+  hookIsFile?: boolean;
   help?: boolean;
   listHooks?: boolean;
+}
+
+function isFilePath(value: string): boolean {
+  return value.includes("/") || value.endsWith(".sh");
 }
 
 function parseArgs(): CliOptions {
@@ -19,9 +23,11 @@ function parseArgs(): CliOptions {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--hook" || arg === "-h") {
-      options.hook = args[++i];
-    } else if (arg === "--post-script" || arg === "-p") {
-      options.postScript = args[++i];
+      const value = args[++i];
+      if (value) {
+        options.hook = value;
+        options.hookIsFile = isFilePath(value);
+      }
     } else if (arg === "--help") {
       options.help = true;
     } else if (arg === "--list-hooks" || arg === "-l") {
@@ -34,26 +40,26 @@ function parseArgs(): CliOptions {
 
 function printHelp() {
   console.log(`
-scaffold - Full-stack TypeScript project generator
+fiat - Full-stack TypeScript project generator
 
-Usage: scaffold [options]
+Usage: fiat [options]
 
 Options:
-  --hook, -h <id>         Run a built-in hook after generation
-  --post-script, -p <script>  Run a custom bash script after generation
+  --hook, -h <id|path>    Run a built-in hook or custom script after generation
   --list-hooks, -l        List available built-in hooks
   --help                  Show this help message
 
-Environment variables available in hooks:
+Environment variables available in hooks/scripts:
   SCAFFOLD_PROJECT_NAME   Name of the generated project
   SCAFFOLD_PROJECT_PATH   Absolute path to the project root
   SCAFFOLD_FRONTEND_PATH  Absolute path to the frontend directory
   SCAFFOLD_BACKEND_PATH   Absolute path to the backend directory
 
 Examples:
-  scaffold                        # Interactive wizard
-  scaffold --hook tmux-dev        # Generate and open in tmux session
-  scaffold -p "code ."            # Generate and open in VS Code
+  fiat                            # Interactive wizard
+  fiat --hook tmux-dev            # Generate and open in tmux session
+  fiat --hook ./my-script.sh      # Run custom script after generation
+  fiat -h /path/to/setup.sh       # Run custom script (absolute path)
 `);
 }
 

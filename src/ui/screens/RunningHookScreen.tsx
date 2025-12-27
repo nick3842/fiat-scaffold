@@ -35,31 +35,35 @@ export function RunningHookScreen({
 
       try {
         if (cliOptions.hook) {
-          const hook = hookRegistry.get(cliOptions.hook);
-          if (!hook) {
-            onError(new Error(`Hook not found: ${cliOptions.hook}`));
-            return;
-          }
-          
-          // If hook takes over terminal, defer execution until after TUI exits
-          if (hook.takesOverTerminal) {
-            setStatus(`Hook "${hook.name}" will run after exit...`);
-            onRunAfterExit(cliOptions.hook, ctx);
-            return;
-          }
+          if (cliOptions.hookIsFile) {
+            // Execute custom script file
+            setStatus(`Running script: ${cliOptions.hook}...`);
+            const result = await hookRegistry.executeScriptFile(cliOptions.hook, ctx);
+            if (!result.success) {
+              onError(new Error(result.error || "Script failed"));
+              return;
+            }
+          } else {
+            // Execute built-in hook
+            const hook = hookRegistry.get(cliOptions.hook);
+            if (!hook) {
+              onError(new Error(`Hook not found: ${cliOptions.hook}`));
+              return;
+            }
+            
+            // If hook takes over terminal, defer execution until after TUI exits
+            if (hook.takesOverTerminal) {
+              setStatus(`Hook "${hook.name}" will run after exit...`);
+              onRunAfterExit(cliOptions.hook, ctx);
+              return;
+            }
 
-          setStatus(`Running hook: ${hook.name}...`);
-          const result = await hookRegistry.execute(cliOptions.hook, ctx);
-          if (!result.success) {
-            onError(new Error(result.error || "Hook failed"));
-            return;
-          }
-        } else if (cliOptions.postScript) {
-          setStatus("Running post-generation script...");
-          const result = await hookRegistry.executeCustomScript(cliOptions.postScript, ctx);
-          if (!result.success) {
-            onError(new Error(result.error || "Script failed"));
-            return;
+            setStatus(`Running hook: ${hook.name}...`);
+            const result = await hookRegistry.execute(cliOptions.hook, ctx);
+            if (!result.success) {
+              onError(new Error(result.error || "Hook failed"));
+              return;
+            }
           }
         }
 

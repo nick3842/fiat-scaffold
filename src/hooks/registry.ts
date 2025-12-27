@@ -42,12 +42,17 @@ class HookRegistry {
 
       await proc.exited;
 
+      // Restore cursor visibility after hook (in case hook hid it)
+      process.stdout.write("\x1b[?25h");
+
       if (proc.exitCode !== 0) {
         return { success: false, error: `Hook exited with code ${proc.exitCode}` };
       }
 
       return { success: true };
     } catch (error) {
+      // Restore cursor even on error
+      process.stdout.write("\x1b[?25h");
       return { 
         success: false, 
         error: error instanceof Error ? error.message : String(error) 
@@ -55,9 +60,18 @@ class HookRegistry {
     }
   }
 
-  async executeCustomScript(script: string, ctx: HookContext): Promise<HookResult> {
+  async executeScriptFile(filePath: string, ctx: HookContext): Promise<HookResult> {
+    const { resolve } = await import("path");
+    const absolutePath = resolve(process.cwd(), filePath);
+    
+    // Check if file exists
+    const file = Bun.file(absolutePath);
+    if (!(await file.exists())) {
+      return { success: false, error: `Script file not found: ${absolutePath}` };
+    }
+
     try {
-      const proc = Bun.spawn(["bash", "-c", script], {
+      const proc = Bun.spawn(["bash", absolutePath], {
         cwd: ctx.projectPath,
         stdin: "inherit",
         stdout: "inherit",
@@ -73,12 +87,17 @@ class HookRegistry {
 
       await proc.exited;
 
+      // Restore cursor visibility after script (in case script hid it)
+      process.stdout.write("\x1b[?25h");
+
       if (proc.exitCode !== 0) {
         return { success: false, error: `Script exited with code ${proc.exitCode}` };
       }
 
       return { success: true };
     } catch (error) {
+      // Restore cursor even on error
+      process.stdout.write("\x1b[?25h");
       return { 
         success: false, 
         error: error instanceof Error ? error.message : String(error) 

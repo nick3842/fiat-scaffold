@@ -38,7 +38,7 @@ function AppContent({ onExit, cliOptions }: AppProps) {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [error, setError] = useState<Error | null>(null);
 
-  const hasHook = !!(cliOptions?.hook || cliOptions?.postScript);
+  const hasHook = !!cliOptions?.hook;
 
   // Global Ctrl+C handler
   useKeyboard((key) => {
