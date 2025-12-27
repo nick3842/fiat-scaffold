@@ -42,6 +42,9 @@ tmux send-keys -t "$SESSION_NAME:backend.0" "bun dev" C-m
 tmux select-window -t "$SESSION_NAME:frontend"
 tmux select-pane -t "$SESSION_NAME:frontend.0"
 
+# Restore cursor visibility
+tput cnorm
+
 # If already inside tmux, switch to the new session; otherwise attach
 if [ -n "$TMUX" ]; then
   tmux switch-client -t "$SESSION_NAME"
