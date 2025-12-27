@@ -5,7 +5,7 @@ Full-stack TypeScript project generator. Creates React + Elysia apps on Bun.
 ## Install
 
 ```bash
-bun add -g @nrs/fiat
+bun add -g @nick3842/fiat
 ```
 
 ## Usage
