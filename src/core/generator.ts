@@ -264,7 +264,7 @@ export class ProjectGenerator {
       stderr: "ignore",
     });
     await proc.exited;
-    
+
     if (proc.exitCode !== 0) {
       throw new Error(`Failed to install ${target} dependencies`);
     }
@@ -317,5 +317,57 @@ ${config.features.filter((f) => f.enabled).length > 0 ? config.features.filter((
 `;
 
     await writeFile(join(outputPath, "README.md"), readme);
+
+    // Create root .gitignore
+    const gitignore = `# Dependencies
+      node_modules/
+
+      # Build output
+      dist/
+
+      # Logs
+      *.log
+
+      # Environment files
+      .env
+      .env.local
+      .env.*.local
+
+      # OS files
+      .DS_Store
+    `;
+    await writeFile(join(outputPath, ".gitignore"), gitignore);
+
+    // Initialize git repository
+    await this.initGit(outputPath);
+  }
+
+  private async initGit(outputPath: string): Promise<void> {
+    const proc = Bun.spawn(["git", "init"], {
+      cwd: outputPath,
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    await proc.exited;
+
+    if (proc.exitCode === 0) {
+      // Stage all files
+      const addProc = Bun.spawn(["git", "add", "."], {
+        cwd: outputPath,
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+      await addProc.exited;
+
+      // Initial commit
+      if (addProc.exitCode === 0) {
+        const commitProc = Bun.spawn(["git", "commit", "-m", "init"], {
+          cwd: outputPath,
+          stdout: "ignore",
+          stderr: "ignore",
+        });
+        await commitProc.exited;
+      }
+    }
   }
 }
