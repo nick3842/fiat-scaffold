@@ -1,5 +1,8 @@
 # dependencies (bun install)
 node_modules
+fiat
+*.sh
+dev-project
 
 # output
 out
