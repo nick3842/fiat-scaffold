@@ -28,7 +28,5 @@ jobs:
 
       - run: bun test
 
-      - run: bun run compile
-
-      - name: Test CLI runs
-        run: ./fiat --help
+      - name: Typecheck
+        run: bunx tsc --noEmit
